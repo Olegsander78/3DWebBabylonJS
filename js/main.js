@@ -39,12 +39,53 @@ function createPlanet(scene){
     planetMaterial.diffuseTexture = new BABYLON.Texture('assets/images/sand.png', scene);
     planetMaterial.specularColor = BABYLON.Color3.Black();
     
-    const planet = BABYLON.MeshBuilder.CreateSphere('planet',{
-        segments: 16,
-        diameter: 1
-    }, scene);
-    planet.position.x = 4;
-    planet.material = planetMaterial;
+    const speeds = [0.01, -0.01, 0.02];
+    for(let i = 0; i < 3; i+=1){
+        const planet = BABYLON.MeshBuilder.CreateSphere(`planet${i}`,{
+            segments: 16,
+            diameter: 1
+        }, scene);
+        planet.position.x = (2 * i) + 4;
+        planet.material = planetMaterial;
+    
+        planet.orbit = {
+            radius: planet.position.x,
+            speed: speeds[i],
+            angle: 0,
+        };
+    
+        scene.registerBeforeRender(() => {
+            planet.position.x = planet.orbit.radius * Math.sin(planet.orbit.angle);
+            planet.position.z = planet.orbit.radius * Math.cos(planet.orbit.angle);
+            planet.orbit.angle += planet.orbit.speed;
+        });
+    }    
+}
+
+function createSkybox(scene){
+    const skyboxMaterial = new BABYLON.StandardMaterial('skyboxMaterial',scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.diffuseColor = BABYLON.Color3.Black();
+    skyboxMaterial.specularColor = BABYLON.Color3.Black();
+
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture('assets/images/skybox/skybox', scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    
+    const skybox = BABYLON.MeshBuilder.CreateBox('skybox',{
+        size: 1000
+    }, scene);    
+
+    skybox.infiniteDistance = true;
+    skybox.material = skyboxMaterial;
+}
+
+function createShip(scene){
+    BABYLON.SceneLoader.ImportMesh('', '/assets/models/', 'spaceCraft1.obj', scene, (meshes) =>{
+      meshes.forEach((mesh)=>{
+          mesh.position = new BABYLON.Vector3(0, -5, 10);
+          mesh.scaling = new BABYLON.Vector3(0.2,0.2,0.2);
+      })
+    });
 }
 
 function createScene(){
@@ -58,6 +99,10 @@ function createScene(){
     createSun(scene);
 
     createPlanet(scene);
+
+    createSkybox(scene);
+
+    createShip(scene);
 
     return scene;
 
@@ -113,3 +158,7 @@ function createScene(){
 const scene = createScene();
 
 engine.runRenderLoop(() => {scene.render();});
+
+window.addEventListener('resize', function(){
+    engine.resize();
+});
